@@ -1,0 +1,805 @@
+{
+  "info": {
+    "_postman_id": "solarsight-collection-v1",
+    "name": "SolarSight — Solar Panel Monitoring System",
+    "description": "Comprehensive REST API test collection for SolarSight (Case Study 59). Includes automated tests, JWT token management, CRUD flows, grid calculations, ROI calculators, alerts, weather impact, and peer comparisons.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Health & Documentation",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Service is OK', function () { const jsonData = pm.response.json(); pm.expect(jsonData.status).to.eql('OK'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "API Root Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": ["{{baseUrl}}"],
+              "path": [""]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Authentication",
+      "item": [
+        {
+          "name": "User Registration",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Omkar Narvekar\",\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"role\": \"user\",\n  \"installedCapacity\": 5.0,\n  \"electricityTariff\": 7.50,\n  \"location\": {\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\",\n    \"latitude\": 19.076,\n    \"longitude\": 72.8777\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.token) {",
+                  "    pm.environment.set('token', data.token);",
+                  "    console.log('Saved token to environment:', data.token);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "User Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "const data = pm.response.json();",
+                  "pm.expect(data.token).to.be.a('string');",
+                  "pm.environment.set('token', data.token);",
+                  "console.log('Token updated from login');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. User Profile",
+      "item": [
+        {
+          "name": "Get Profile (Me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "const data = pm.response.json();",
+                  "pm.expect(data.user).to.have.property('email');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Omkar Narvekar (Pro)\",\n  \"electricityTariff\": 7.80,\n  \"installedCapacity\": 5.0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{testPassword}}\",\n  \"newPassword\": \"SolarPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "change-password"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Solar Panel CRUD",
+      "item": [
+        {
+          "name": "Create Panel",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Main Rooftop Array #1\",\n  \"capacity\": 5.0,\n  \"location\": \"Main Terrace South\",\n  \"panelType\": \"Monocrystalline\",\n  \"cost\": 250000,\n  \"efficiency\": 21.5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/panels",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "panels"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Panel created', function () { pm.response.to.have.status(201); });",
+                  "const data = pm.response.json();",
+                  "if (data.panel && data.panel._id) {",
+                  "  pm.environment.set('panelId', data.panel._id);",
+                  "  console.log('Saved panelId:', data.panel._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Panels",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/panels",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "panels"]
+            }
+          }
+        },
+        {
+          "name": "Get Panel by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/panels/{{panelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "panels", "{{panelId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Panel",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Main Rooftop Array #1 (Updated)\",\n  \"efficiency\": 22.0,\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/panels/{{panelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "panels", "{{panelId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Panel",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/panels/{{panelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "panels", "{{panelId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Generation & Consumption Readings",
+      "item": [
+        {
+          "name": "Seed Demo Generation Telemetry",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/generation/demo",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "generation", "demo"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.panelId) pm.environment.set('panelId', data.panelId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Record Generation Reading",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"panelId\": \"{{panelId}}\",\n  \"powerOutput\": 4.8,\n  \"energyGenerated\": 18.0,\n  \"temperature\": 32,\n  \"irradiance\": 880\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/generation",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "generation"]
+            }
+          }
+        },
+        {
+          "name": "Get Generation History & Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/generation",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "generation"]
+            }
+          }
+        },
+        {
+          "name": "Get Generation for Panel",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/generation/panel/{{panelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "generation", "panel", "{{panelId}}"]
+            }
+          }
+        },
+        {
+          "name": "Seed Demo Consumption",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/consumption/demo",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consumption", "demo"]
+            }
+          }
+        },
+        {
+          "name": "Record Consumption Reading",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"powerConsumed\": 3.0,\n  \"energyConsumed\": 12.0,\n  \"applianceCategory\": \"HVAC\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/consumption",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consumption"]
+            }
+          }
+        },
+        {
+          "name": "Get Consumption History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/consumption",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consumption"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Grid Import & Export",
+      "item": [
+        {
+          "name": "Get Grid Export",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/grid/export",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "grid", "export"]
+            }
+          }
+        },
+        {
+          "name": "Get Grid Import",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/grid/import",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "grid", "import"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Electricity Bills",
+      "item": [
+        {
+          "name": "Create Monthly Bill",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"billingMonth\": \"2026-09\",\n  \"totalConsumedKWh\": 360,\n  \"totalGeneratedKWh\": 540,\n  \"tariffPerKWh\": 7.50\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bills",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bills"]
+            }
+          }
+        },
+        {
+          "name": "Get Bills & Savings Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bills",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bills"]
+            }
+          }
+        },
+        {
+          "name": "Predict Current Month Bill",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bills/predict",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bills", "predict"]
+            }
+          }
+        },
+        {
+          "name": "Get Monthly Breakdown",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bills/monthly",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bills", "monthly"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Alerts & Notifications",
+      "item": [
+        {
+          "name": "Trigger Alert Diagnostics",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts/check",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts", "check"]
+            }
+          }
+        },
+        {
+          "name": "Get All Alerts",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.alerts && data.alerts.length > 0) {",
+                  "  pm.environment.set('alertId', data.alerts[0]._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Alert by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts/{{alertId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts", "{{alertId}}"]
+            }
+          }
+        },
+        {
+          "name": "Mark Alert as Read",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts/{{alertId}}/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts", "{{alertId}}", "read"]
+            }
+          }
+        },
+        {
+          "name": "Mark Alert as Resolved",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts/{{alertId}}/resolve",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts", "{{alertId}}", "resolve"]
+            }
+          }
+        },
+        {
+          "name": "Dispatch Push Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Panel Cleaning Notice\",\n  \"body\": \"Panel #3 underperforming 8%, cleaning due with Socket.io\",\n  \"severity\": \"medium\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", "send"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Return on Investment (ROI)",
+      "item": [
+        {
+          "name": "Get System ROI & Payback",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/roi",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "roi"]
+            }
+          }
+        },
+        {
+          "name": "Calculate Custom Scenario ROI",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/roi/calculate?systemCost=250000&systemCapacityKW=5.0&tariffPerKWh=7.50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "roi", "calculate"],
+              "query": [
+                { "key": "systemCost", "value": "250000" },
+                { "key": "systemCapacityKW", "value": "5.0" },
+                { "key": "tariffPerKWh", "value": "7.50" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Weather & Comparisons",
+      "item": [
+        {
+          "name": "Weather Impact Analysis",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/weather/impact?city=Mumbai",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "weather", "impact"],
+              "query": [{ "key": "city", "value": "Mumbai" }]
+            }
+          }
+        },
+        {
+          "name": "Weather Solar Forecast",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/weather/forecast?city=Mumbai",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "weather", "forecast"],
+              "query": [{ "key": "city", "value": "Mumbai" }]
+            }
+          }
+        },
+        {
+          "name": "Compare Neighbors (Anonymous)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compare/neighbors",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "compare", "neighbors"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. Advanced Features",
+      "item": [
+        {
+          "name": "Battery Storage Optimization",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/advanced/battery",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "advanced", "battery"]
+            }
+          }
+        },
+        {
+          "name": "EV Smart Charging Scheduler",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/advanced/ev-scheduler",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "advanced", "ev-scheduler"]
+            }
+          }
+        },
+        {
+          "name": "Carbon Savings & Trees Equivalent",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/advanced/carbon-savings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "advanced", "carbon-savings"]
+            }
+          }
+        },
+        {
+          "name": "Government Subsidies & Incentives",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/advanced/incentives",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "advanced", "incentives"]
+            }
+          }
+        },
+        {
+          "name": "Submit Subsidy Claim",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schemeName\": \"PM Surya Ghar: Muft Bijli Yojana\",\n  \"subsidyAmount\": 78000,\n  \"systemCapacityKW\": 5.0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/advanced/incentives",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "advanced", "incentives"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
